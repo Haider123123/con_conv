@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نقل بيانات Dentro - مع تأكيد الربط</title>
+    <title>نقل بيانات Dentro</title>
     <script src="https://unpkg.com/pocketbase@0.21.1/dist/pocketbase.umd.js"></script>
     <style>
         :root {
@@ -46,12 +46,9 @@
             border-bottom: 1px solid var(--border);
         }
         .card-title .icon {
-            width: 44px;
-            height: 44px;
+            width: 44px; height: 44px;
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 20px;
             background: rgba(59, 130, 246, 0.15);
         }
@@ -68,7 +65,7 @@
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; }
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 10px 12px;
             background: rgba(0,0,0,0.2);
@@ -77,8 +74,9 @@
             color: var(--text);
             font-size: 14px;
         }
-        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
         textarea { min-height: 120px; font-family: monospace; font-size: 12px; }
+        select { cursor: pointer; }
         .file-zone {
             border: 2px dashed var(--border);
             border-radius: 10px;
@@ -156,7 +154,7 @@
         .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
         .hidden { display: none; }
         .check-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
-        .check-item input { width: 16px; height: 16px; }
+        .check-item input[type="checkbox"] { width: 16px; height: 16px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         .status-dot.green { background: var(--success); }
         .status-dot.red { background: var(--error); }
@@ -171,16 +169,26 @@
         }
         .relation-box h4 { color: var(--success); margin-bottom: 10px; font-size: 14px; }
         .relation-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            display: flex; align-items: center; gap: 10px;
             padding: 8px;
             background: rgba(0,0,0,0.2);
             border-radius: 6px;
             margin-bottom: 6px;
             font-size: 12px;
+            flex-wrap: wrap;
         }
         .relation-arrow { color: var(--primary); font-weight: bold; }
+        .tab-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .tab-btn.active { background: var(--primary); border-color: var(--primary); }
         @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -188,7 +196,7 @@
     <div class="container">
         <div class="header">
             <h1>🔄 نقل بيانات Dentro</h1>
-            <p>من Supabase إلى PocketBase مع ضمان صحة الربط</p>
+            <p>من Supabase إلى PocketBase</p>
         </div>
 
         <!-- الخطوة 1: الاتصال -->
@@ -198,19 +206,31 @@
                 <div><h2>الاتصال بـ PocketBase</h2></div>
                 <span class="badge">1</span>
             </div>
+            
+            <div class="form-group">
+                <label>نوع الحساب</label>
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="setAuthType('admin')" id="tabAdmin">👑 Admin (مسؤول)</button>
+                    <button class="tab-btn" onclick="setAuthType('user')" id="tabUser">👤 User (مستخدم)</button>
+                </div>
+                <div class="alert alert-info" id="authHint">
+                    حساب Admin يمكنك الوصول إليه من: <code>https://maindb-pocketbase.koovic.com/_/</code>
+                </div>
+            </div>
+            
             <div class="form-row">
                 <div class="form-group">
                     <label>رابط PocketBase</label>
                     <input type="text" id="pbUrl" value="https://maindb-pocketbase.koovic.com">
                 </div>
                 <div class="form-group">
-                    <label>بريد المسؤول</label>
-                    <input type="email" id="adminEmail">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="authEmail">
                 </div>
             </div>
             <div class="form-group">
                 <label>كلمة المرور</label>
-                <input type="password" id="adminPass">
+                <input type="password" id="authPass">
             </div>
             <div class="btn-group">
                 <button class="btn btn-primary" onclick="connect()" id="btnConnect">🔌 اتصال</button>
@@ -227,7 +247,7 @@
             </div>
             
             <div class="alert alert-info">
-                <strong>📋 استعلامات SQL:</strong><br>
+                <strong>📋 استعلامات SQL (نفذها في Supabase SQL Editor):</strong><br>
                 1. <code>SELECT id as supabase_user_id, email FROM auth.users;</code><br>
                 2. <code>SELECT user_id, content FROM user_data;</code>
             </div>
@@ -264,11 +284,10 @@
                 <span class="badge">3</span>
             </div>
             
-            <!-- صندوق تأكيد الربط -->
             <div class="relation-box">
                 <h4>🔗 تأكيد آلية الربط (Relation)</h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
-                    كل مريض سيُربط بالمستخدم الصحيح عبر عمود <code>user</code> في جدول <code>patients_data</code>
+                    كل مريض سيُربط بالمستخدم الصحيح عبر عمود <code>user</code>
                 </p>
                 <div id="relationPreview"></div>
             </div>
@@ -280,7 +299,7 @@
                 <div class="stat"><div class="num" id="sPatients">0</div><div class="label">المرضى</div></div>
             </div>
             
-            <h4 style="margin:14px 0 8px;font-size:13px">🔗 جدول المطابقة التفصيلي:</h4>
+            <h4 style="margin:14px 0 8px;font-size:13px">🔗 جدول المطابقة:</h4>
             <div class="table-wrap">
                 <table id="mapTable">
                     <thead>
@@ -304,17 +323,8 @@
                 </div>
                 <div class="check-item">
                     <input type="checkbox" id="optClean" checked>
-                    <label for="optClean">إزالة الصور المضمنة</label>
+                    <label for="optClean">إزالة الصور المضمنة (Base64)</label>
                 </div>
-                <div class="check-item">
-                    <input type="checkbox" id="optMatched" checked>
-                    <label for="optMatched">نقل المتطابق فقط</label>
-                </div>
-            </div>
-            
-            <div class="alert alert-warning">
-                <strong>⚠️ تأكيد:</strong> سيتم إنشاء صف منفصل لكل مريض في جدول <code>patients_data</code> 
-                مع ربطه بالمستخدم الصحيح عبر عمود <code>user</code> (Relation)
             </div>
             
             <button class="btn btn-success" onclick="migrate()" id="btnMigrate">🚀 بدء النقل</button>
@@ -347,8 +357,25 @@
         let dataCSV = [];
         let mapped = [];
         let connected = false;
+        let authType = 'admin'; // 'admin' أو 'user'
         
         const $ = id => document.getElementById(id);
+        
+        // ═══════════════════════════════════════════════════════════════
+        // تبديل نوع المصادقة
+        // ═══════════════════════════════════════════════════════════════
+        
+        function setAuthType(type) {
+            authType = type;
+            $('tabAdmin').classList.toggle('active', type === 'admin');
+            $('tabUser').classList.toggle('active', type === 'user');
+            
+            if (type === 'admin') {
+                $('authHint').innerHTML = 'حساب Admin يمكنك الوصول إليه من: <code>' + $('pbUrl').value + '/_/</code>';
+            } else {
+                $('authHint').innerHTML = 'استخدم حساب مستخدم عادي مسجل في التطبيق (يجب أن يكون لديه صلاحيات)';
+            }
+        }
         
         // ═══════════════════════════════════════════════════════════════
         // السجل
@@ -430,7 +457,7 @@
         };
         
         // ═══════════════════════════════════════════════════════════════
-        // تحويل البيانات (مطابق لـ pocketbase.ts)
+        // تحويل البيانات
         // ═══════════════════════════════════════════════════════════════
         
         const patientToCols = (p, clean = true) => {
@@ -521,23 +548,57 @@
             
             try {
                 const url = $('pbUrl').value.trim();
-                const email = $('adminEmail').value.trim();
-                const pass = $('adminPass').value;
+                const email = $('authEmail').value.trim();
+                const pass = $('authPass').value;
+                
                 if (!url || !email || !pass) throw new Error('املأ جميع الحقول');
                 
                 pb = new PocketBase(url);
-                await pb.admins.authWithPassword(email, pass);
-                log('✅ تم الاتصال', 'success');
                 
-                pbUsers = await pb.collection('users').getFullList();
-                log(`📥 ${pbUsers.length} مستخدم في PocketBase`, 'success');
+                // محاولة الاتصال حسب نوع الحساب
+                if (authType === 'admin') {
+                    log('🔑 محاولة الاتصال كـ Admin...', 'info');
+                    try {
+                        await pb.admins.authWithPassword(email, pass);
+                        log('✅ تم الاتصال كـ Admin', 'success');
+                    } catch (adminErr) {
+                        log('⚠️ فشل كـ Admin، جاري المحاولة كـ User...', 'warning');
+                        // محاولة كـ User
+                        await pb.collection('users').authWithPassword(email, pass);
+                        log('✅ تم الاتصال كـ User', 'success');
+                        authType = 'user';
+                    }
+                } else {
+                    log('🔑 محاولة الاتصال كـ User...', 'info');
+                    await pb.collection('users').authWithPassword(email, pass);
+                    log('✅ تم الاتصال كـ User', 'success');
+                }
+                
+                // جلب المستخدمين
+                log('📥 جلب قائمة المستخدمين...', 'info');
+                try {
+                    pbUsers = await pb.collection('users').getFullList();
+                    log(`✅ ${pbUsers.length} مستخدم في PocketBase`, 'success');
+                } catch (e) {
+                    log('⚠️ لا يمكن جلب كل المستخدمين، سيتم استخدام البيانات المتاحة', 'warning');
+                    // إذا كان المستخدم الحالي فقط
+                    if (pb.authStore.model) {
+                        pbUsers = [pb.authStore.model];
+                        log(`ℹ️ تم جلب المستخدم الحالي فقط: ${pb.authStore.model.email}`, 'info');
+                    }
+                }
                 
                 connected = true;
-                status.innerHTML = `<span class="status-dot green"></span> ${pbUsers.length} مستخدم`;
+                status.innerHTML = `<span class="status-dot green"></span> متصل (${pbUsers.length})`;
                 checkReady();
+                
             } catch (e) {
-                log(`❌ ${e.message}`, 'error');
-                status.innerHTML = '<span class="status-dot red"></span>';
+                log(`❌ فشل الاتصال: ${e.message}`, 'error');
+                log('💡 تأكد من:', 'info');
+                log('   - الرابط صحيح', 'info');
+                log('   - البريد وكلمة المرور صحيحين', 'info');
+                log('   - نوع الحساب صحيح (Admin أو User)', 'info');
+                status.innerHTML = '<span class="status-dot red"></span> فشل';
                 connected = false;
             } finally {
                 btn.disabled = false;
@@ -558,6 +619,13 @@
             reader.onload = e => {
                 usersCSV = parseCSV(e.target.result);
                 log(`📧 ${usersCSV.length} مستخدم من Supabase`, 'success');
+                
+                // عرض أول سجل للتأكد
+                if (usersCSV.length > 0) {
+                    const first = usersCSV[0];
+                    log(`   مثال: ${first.email || first.supabase_user_id || JSON.stringify(first)}`, 'info');
+                }
+                
                 checkReady();
             };
             reader.readAsText(file);
@@ -582,7 +650,7 @@
         }
         
         // ═══════════════════════════════════════════════════════════════
-        // المعالجة والمطابقة
+        // المعالجة
         // ═══════════════════════════════════════════════════════════════
         
         function process() {
@@ -615,11 +683,16 @@
                 
                 if (typeof content === 'string') {
                     try {
+                        // تنظيف JSON
                         content = content.replace(/\\"/g, '"');
-                        if (content.startsWith('"') && content.endsWith('"')) content = content.slice(1, -1);
+                        if (content.startsWith('"') && content.endsWith('"')) {
+                            content = content.slice(1, -1);
+                        }
+                        // إزالة escape إضافية
+                        content = content.replace(/\\\\/g, '\\');
                         content = JSON.parse(content);
                     } catch (e) {
-                        log(`⚠️ JSON خاطئ: ${supUserId}`, 'warning');
+                        log(`⚠️ JSON خاطئ: ${supUserId} - ${e.message}`, 'warning');
                         continue;
                     }
                 }
@@ -637,7 +710,6 @@
                     pbId,
                     clinicName: content.clinicName || '?',
                     patientsCount: patients.length,
-                    doctorsCount: (content.doctors || []).length,
                     content,
                     matched: !!pbId
                 });
@@ -652,20 +724,22 @@
             $('sUnmatch').textContent = unmatchCount;
             $('sPatients').textContent = totalPatients;
             
-            // جدول المطابقة مع عرض IDs
+            // جدول المطابقة
             const tbody = document.querySelector('#mapTable tbody');
             tbody.innerHTML = mapped.map(m => `
                 <tr>
                     <td>${m.email}</td>
-                    <td style="font-family:monospace;font-size:10px">${m.supUserId.substring(0, 12)}...</td>
-                    <td style="font-family:monospace;font-size:10px;color:${m.pbId ? 'var(--success)' : 'var(--error)'}">${m.pbId || '❌ غير موجود'}</td>
+                    <td style="font-family:monospace;font-size:10px">${(m.supUserId || '').substring(0, 12)}...</td>
+                    <td style="font-family:monospace;font-size:10px;color:${m.pbId ? 'var(--success)' : 'var(--error)'}">
+                        ${m.pbId || '❌ غير موجود'}
+                    </td>
                     <td>${m.clinicName}</td>
                     <td>${m.patientsCount}</td>
                     <td><span class="badge-sm ${m.matched ? 'badge-success' : 'badge-error'}">${m.matched ? '✓' : '✗'}</span></td>
                 </tr>
             `).join('');
             
-            // عرض مثال على الربط
+            // عرض مثال الربط
             const relationPreview = $('relationPreview');
             const examples = mapped.filter(m => m.matched && m.patientsCount > 0).slice(0, 2);
             relationPreview.innerHTML = examples.map(m => `
@@ -674,7 +748,7 @@
                     <span class="relation-arrow">→</span>
                     <span>🔑 user: "${m.pbId}"</span>
                     <span class="relation-arrow">→</span>
-                    <span>👥 ${m.patientsCount} مريض سيُربط بهذا الـ ID</span>
+                    <span>👥 ${m.patientsCount} مريض</span>
                 </div>
             `).join('') || '<div style="color:var(--muted)">لا توجد عيادات متطابقة</div>';
             
@@ -685,7 +759,7 @@
         }
         
         // ═══════════════════════════════════════════════════════════════
-        // النقل مع تأكيد الربط
+        // النقل
         // ═══════════════════════════════════════════════════════════════
         
         async function migrate() {
@@ -697,12 +771,11 @@
             
             const skipExisting = $('optSkip').checked;
             const cleanImages = $('optClean').checked;
-            const matchedOnly = $('optMatched').checked;
             
             log('═'.repeat(40), 'header');
             log('🚀 بدء النقل', 'header');
             
-            const toMigrate = matchedOnly ? mapped.filter(m => m.matched) : mapped.filter(m => m.matched);
+            const toMigrate = mapped.filter(m => m.matched);
             log(`📊 ${toMigrate.length} عيادة للنقل`, 'info');
             
             let success = 0, skipped = 0, failed = 0;
@@ -715,8 +788,8 @@
                 progBar.textContent = `${prog}%`;
                 
                 log(`─`.repeat(30), 'header');
-                log(`[${i+1}/${toMigrate.length}] ${item.clinicName} (${item.email})`, 'info');
-                log(`   🔗 سيُربط بـ user: "${item.pbId}"`, 'info');
+                log(`[${i+1}/${toMigrate.length}] ${item.clinicName}`, 'info');
+                log(`   🔗 user: "${item.pbId}"`, 'info');
                 
                 try {
                     // التحقق من الوجود
@@ -734,30 +807,23 @@
                     // إنشاء user_data
                     const userData = distributeData(item.content, cleanImages);
                     await pb.collection('user_data').create({
-                        user_id: item.pbId,  // ربط ببيانات العيادة
+                        user_id: item.pbId,
                         ...userData
                     });
-                    log('   ✅ user_data تم إنشاؤه', 'success');
+                    log('   ✅ user_data', 'success');
                     
-                    // إنشاء سجل منفصل لكل مريض مع الربط
+                    // إنشاء المرضى
                     const patients = item.content.patients || [];
-                    log(`   👥 إنشاء ${patients.length} صف في patients_data...`, 'info');
-                    
                     for (let j = 0; j < patients.length; j++) {
                         const pt = patients[j];
                         try {
                             const cols = patientToCols(pt, cleanImages);
-                            
-                            // ⭐ هنا يتم الربط الفعلي!
-                            // عمود "user" هو Relation يربط هذا المريض بالمستخدم
                             await pb.collection('patients_data').create({
-                                user: item.pbId,  // ← الربط بالمستخدم
-                                ...cols           // ← بيانات المريض موزعة
+                                user: item.pbId,
+                                ...cols
                             });
-                            
                             pSuccess++;
                             
-                            // عرض تقدم كل 10 مرضى
                             if ((j + 1) % 10 === 0 || j === patients.length - 1) {
                                 log(`      ✓ ${j + 1}/${patients.length} مريض`, 'success');
                             }
@@ -770,22 +836,22 @@
                     success++;
                     
                 } catch (e) {
-                    log(`   ❌ فشل: ${e.message}`, 'error');
+                    log(`   ❌ ${e.message}`, 'error');
                     failed++;
                 }
             }
             
             // الملخص
             log('═'.repeat(40), 'header');
-            log('📊 الملخص النهائي', 'header');
-            log(`✅ عيادات ناجحة: ${success}`, 'success');
-            log(`⏭️ تم تخطيها: ${skipped}`, 'warning');
-            log(`❌ فاشلة: ${failed}`, failed ? 'error' : 'info');
-            log(`👥 مرضى تم نقلهم: ${pSuccess}`, 'success');
-            log(`❌ مرضى فشل نقلهم: ${pFailed}`, pFailed ? 'error' : 'info');
+            log('📊 الملخص', 'header');
+            log(`✅ عيادات: ${success}`, 'success');
+            log(`⏭️ تخطي: ${skipped}`, 'warning');
+            log(`❌ فشل: ${failed}`, failed ? 'error' : 'info');
+            log(`👥 مرضى: ${pSuccess}`, 'success');
+            log(`❌ مرضى فشل: ${pFailed}`, pFailed ? 'error' : 'info');
             
             if (!failed && !pFailed) {
-                log('🎉 تم النقل بنجاح! كل مريض مربوط بالعيادة الصحيحة.', 'success');
+                log('🎉 تم بنجاح!', 'success');
             }
             
             btn.disabled = false;
